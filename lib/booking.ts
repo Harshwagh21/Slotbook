@@ -168,7 +168,7 @@ async function assertRealSlot(db: Db, et: EventTypeRow, start: Date): Promise<vo
 
 /** 409 unless the slot is free: no overlapping booking (buffers, host-wide) and a seat left. */
 async function assertFree(db: Db, et: EventTypeRow, start: Date, excludeBookingId: string | null): Promise<void> {
-  const { end, blockedStart, blockedEnd } = blockedRange(et, start);
+  const { blockedStart, blockedEnd } = blockedRange(et, start);
   const overlap = await db.query<{ n: number }>(
     `SELECT count(*)::int AS n FROM bookings
       WHERE host_id = $1 AND status IN ('held', 'confirmed')
@@ -186,7 +186,6 @@ async function assertFree(db: Db, et: EventTypeRow, start: Date, excludeBookingI
     [et.id, start, excludeBookingId],
   );
   if (seats.rows[0].n >= et.capacity) throw new ApiError(409, "slot_full", "That slot is full");
-  void end;
 }
 
 async function notify(db: Db, bookingId: string, type: "confirmed" | "rescheduled" | "cancelled", payload: object) {
