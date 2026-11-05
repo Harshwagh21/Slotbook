@@ -2,13 +2,17 @@ import { notFound } from "next/navigation";
 import { BookingPage } from "@/components/BookingPage";
 import { getEventType } from "@/lib/booking";
 import { getPool } from "@/lib/db";
+import { ApiError } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
 
 // Public booking page: /{host}/{event-slug}
 export default async function Page({ params }: { params: Promise<{ host: string; slug: string }> }) {
   const { host, slug } = await params;
-  const et = await getEventType(getPool(), host, slug).catch(() => null);
+  const et = await getEventType(getPool(), host, slug).catch((e) => {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
+  });
   if (!et) notFound();
   return (
     <>

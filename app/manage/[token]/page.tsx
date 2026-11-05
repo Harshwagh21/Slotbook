@@ -1,0 +1,20 @@
+import { notFound } from "next/navigation";
+import { ManageBooking } from "@/components/ManageBooking";
+import { getBookingByToken, getEventType } from "@/lib/booking";
+import { getPool } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
+
+// Private manage page: /manage/{token} (the token is the only credential).
+export default async function Page({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params;
+  const booking = await getBookingByToken(token);
+  if (!booking) notFound();
+  const et = await getEventType(getPool(), booking.host.handle, booking.eventType.slug);
+  return (
+    <>
+      <h1>Your booking</h1>
+      <ManageBooking token={token} initial={booking} capacity={et.capacity} />
+    </>
+  );
+}
