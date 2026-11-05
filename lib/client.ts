@@ -24,14 +24,17 @@ export function allTimeZones(): string[] {
   return zones.includes("UTC") ? zones : ["UTC", ...zones];
 }
 
+// Fixed locale so server-rendered and browser-rendered text match (no hydration mismatch).
+const LOCALE = "en-US";
+
 export function formatDateTime(iso: string, tz: string): string {
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short", timeZone: tz }).format(new Date(iso));
+  return new Intl.DateTimeFormat(LOCALE, { dateStyle: "medium", timeStyle: "short", timeZone: tz }).format(new Date(iso));
 }
 
 export function formatTime(iso: string, tz: string): string {
-  return new Intl.DateTimeFormat(undefined, { timeStyle: "short", timeZone: tz }).format(new Date(iso));
+  return new Intl.DateTimeFormat(LOCALE, { timeStyle: "short", timeZone: tz }).format(new Date(iso));
 }
 
 export function formatDay(iso: string, tz: string): string {
-  return new Intl.DateTimeFormat(undefined, { weekday: "short", day: "numeric", month: "short", timeZone: tz }).format(new Date(iso));
+  return new Intl.DateTimeFormat(LOCALE, { weekday: "short", day: "numeric", month: "short", timeZone: tz }).format(new Date(iso));
 }
