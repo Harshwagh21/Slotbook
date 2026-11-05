@@ -39,9 +39,24 @@ const window = z
   .object({ start: hhmm, end: hhmm })
   .refine((w) => w.start < w.end, "start must be before end");
 
+// Windows on the same day must not overlap (otherwise the same slot would be offered twice).
+function overlaps(ws: { start: string; end: string }[]): boolean {
+  const sorted = [...ws].sort((a, b) => a.start.localeCompare(b.start));
+  return sorted.some((w, i) => i > 0 && w.start < sorted[i - 1].end);
+}
+
 export const availabilityBody = z.object({
-  rules: z.array(window.and(z.object({ weekday: z.number().int().min(1).max(7) }))).max(100),
+  rules: z
+    .array(window.and(z.object({ weekday: z.number().int().min(1).max(7) })))
+    .max(100)
+    .refine(
+      (rules) => [1, 2, 3, 4, 5, 6, 7].every((d) => !overlaps(rules.filter((r) => r.weekday === d))),
+      "windows on the same weekday must not overlap",
+    ),
 });
 
 // An override replaces the weekly rules on one date. No windows = day off.
-export const overrideBody = z.object({ date: z.iso.date(), windows: z.array(window).max(20) });
+export const overrideBody = z.object({
+  date: z.iso.date(),
+  windows: z.array(window).max(20).refine((ws) => !overlaps(ws), "windows must not overlap"),
+});
