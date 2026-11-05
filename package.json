@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@10.34.6",
   "scripts": {
-    "dev": "next dev",
+    "dev": "pnpm migrate && pnpm seed && next dev",
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 3000",
     "migrate": "tsx scripts/migrate.ts",
