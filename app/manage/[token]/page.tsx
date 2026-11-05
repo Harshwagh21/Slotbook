@@ -12,9 +12,15 @@ export default async function Page({ params }: { params: Promise<{ token: string
   if (!booking) notFound();
   const et = await getEventType(getPool(), booking.host.handle, booking.eventType.slug);
   return (
-    <>
-      <h1>Your booking</h1>
+    <main className="app-shell">
+      <div className="page-head">
+        <div>
+          <p className="badge">Manage booking</p>
+          <h1>Your booking</h1>
+          <p className="page-kicker">Private link — reschedule or cancel without an account.</p>
+        </div>
+      </div>
       <ManageBooking token={token} initial={booking} capacity={et.capacity} />
-    </>
+    </main>
   );
 }

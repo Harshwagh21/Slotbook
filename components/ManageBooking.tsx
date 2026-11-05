@@ -41,32 +41,46 @@ export function ManageBooking({ token, initial, capacity }: { token: string; ini
 
   return (
     <>
-      <section>
-        <h2>{booking.eventType.name}</h2>
-        <p>
-          <b>{formatDateTime(booking.start, tz)}</b> – {formatDateTime(booking.end, tz)}
-        </p>
-        <div className="row">
-          <label htmlFor="tz">Time zone</label>
-          <TimeZoneSelect id="tz" value={tz} onChange={setTz} />
+      <section className="panel">
+        <div className="panel__title">
+          <h2>{booking.eventType.name}</h2>
+          <span className="badge">{booking.status}</span>
         </div>
         <p>
-          Guest: {booking.guestName} ({booking.guestEmail})<br />
-          Host: {booking.host.name}
-          <br />
-          Status: <b>{booking.status}</b>
-          {booking.cancelReason ? ` (reason: ${booking.cancelReason})` : ""}
+          <strong>{formatDateTime(booking.start, tz)}</strong>
+          <span className="muted"> – {formatDateTime(booking.end, tz)}</span>
         </p>
-        {message && <p className="muted">{message}</p>}
+        <div className="row">
+          <label htmlFor="tz">
+            Time zone
+            <TimeZoneSelect id="tz" value={tz} onChange={setTz} />
+          </label>
+        </div>
+        <p className="muted">
+          Guest: {booking.guestName} ({booking.guestEmail})
+          <br />
+          Host: {booking.host.name}
+          {booking.cancelReason ? (
+            <>
+              <br />
+              Reason: {booking.cancelReason}
+            </>
+          ) : null}
+        </p>
+        {message && <p className="ok">{message}</p>}
       </section>
 
       {booking.status === "confirmed" && (
         <>
-          <section>
-            <h3>Reschedule</h3>
+          <section className="panel">
+            <div className="panel__title">
+              <h3>Reschedule</h3>
+            </div>
             {rescheduling ? (
               <>
-                <button onClick={() => setRescheduling(false)}>Close</button>
+                <div className="row" style={{ marginTop: 0 }}>
+                  <button onClick={() => setRescheduling(false)}>Close</button>
+                </div>
                 <SlotPicker
                   host={booking.host.handle}
                   slug={booking.eventType.slug}
@@ -77,14 +91,23 @@ export function ManageBooking({ token, initial, capacity }: { token: string; ini
                 />
               </>
             ) : (
-              <button onClick={() => setRescheduling(true)}>Pick a new time</button>
+              <button className="primary" onClick={() => setRescheduling(true)}>
+                Pick a new time
+              </button>
             )}
           </section>
-          <section>
-            <h3>Cancel</h3>
+          <section className="panel">
+            <div className="panel__title">
+              <h3>Cancel</h3>
+            </div>
             <form action={cancel} className="row">
-              <input name="reason" placeholder="Reason (optional)" maxLength={500} />
-              <button type="submit">Cancel booking</button>
+              <label style={{ flex: 1, minWidth: "12rem" }}>
+                Reason (optional)
+                <input name="reason" placeholder="Reason" maxLength={500} />
+              </label>
+              <button type="submit" className="btn--danger">
+                Cancel booking
+              </button>
             </form>
           </section>
         </>

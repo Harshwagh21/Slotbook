@@ -71,11 +71,15 @@ export function BookingPage(props: { host: string; slug: string; capacity: numbe
 
   if (manageUrl && hold) {
     return (
-      <section>
-        <h2>Booked!</h2>
-        <p>{formatDateTime(hold.start, tz)} ({tz})</p>
+      <section className="panel">
+        <p className="badge">Confirmed</p>
+        <h2>Booked</h2>
         <p>
-          Your private link to view, reschedule or cancel: <a href={manageUrl}>{manageUrl}</a>
+          {formatDateTime(hold.start, tz)} <span className="muted">({tz})</span>
+        </p>
+        <p className="muted">Your private link to view, reschedule or cancel:</p>
+        <p>
+          <a href={manageUrl}>{manageUrl}</a>
         </p>
       </section>
     );
@@ -83,25 +87,40 @@ export function BookingPage(props: { host: string; slug: string; capacity: numbe
 
   return (
     <>
-      <div className="row">
-        <label htmlFor="tz">Time zone</label>
-        <TimeZoneSelect id="tz" value={tz} onChange={setTz} />
-      </div>
-      {message && <p className="error">{message}</p>}
+      <section className="panel">
+        <div className="row" style={{ marginTop: 0 }}>
+          <label htmlFor="tz">
+            Time zone
+            <TimeZoneSelect id="tz" value={tz} onChange={setTz} />
+          </label>
+        </div>
+        {message && <p className="error">{message}</p>}
+      </section>
+
       {hold ? (
-        <section>
-          <h2>{formatDateTime(hold.start, tz)}</h2>
+        <section className="panel">
+          <div className="panel__title">
+            <h2>{formatDateTime(hold.start, tz)}</h2>
+          </div>
           <p>
             Held for you for{" "}
-            <b>
+            <span className="hold-timer">
               {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, "0")}
-            </b>
+            </span>
           </p>
-          <form action={confirm}>
+          <form action={confirm} className="stack">
             <div className="row">
-              <input name="name" placeholder="Your name" required />
-              <input name="email" type="email" placeholder="you@example.com" required />
-              <button type="submit" disabled={busy}>
+              <label>
+                Your name
+                <input name="name" placeholder="Your name" required />
+              </label>
+              <label>
+                Email
+                <input name="email" type="email" placeholder="you@example.com" required />
+              </label>
+            </div>
+            <div className="row">
+              <button type="submit" className="primary" disabled={busy}>
                 Confirm booking
               </button>
               <button type="button" onClick={() => setHold(null)}>
@@ -111,7 +130,10 @@ export function BookingPage(props: { host: string; slug: string; capacity: numbe
           </form>
         </section>
       ) : (
-        <section>
+        <section className="panel">
+          <div className="panel__title">
+            <h2>Available slots</h2>
+          </div>
           <SlotPicker host={props.host} slug={props.slug} tz={tz} capacity={props.capacity} reloadKey={reloadKey} onPick={busy ? () => {} : pick} />
         </section>
       )}

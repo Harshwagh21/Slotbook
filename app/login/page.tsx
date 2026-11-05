@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api } from "@/lib/client";
@@ -18,17 +19,31 @@ export default function LoginPage() {
   }
 
   return (
-    <section>
-      <h1>Host login</h1>
-      <p className="muted">Demo: demo@slotbook.dev / demo1234</p>
-      <form action={submit}>
-        <div className="row">
-          <input name="email" type="email" placeholder="Email" required defaultValue="demo@slotbook.dev" />
-          <input name="password" type="password" placeholder="Password" required />
-          <button type="submit">Log in</button>
-        </div>
-      </form>
-      {error && <p className="error">{error}</p>}
-    </section>
+    <main className="app-shell">
+      <div className="auth-wrap">
+        <section className="panel">
+          <p className="badge">Host access</p>
+          <h1>Log in</h1>
+          <p className="muted">Demo: demo@slotbook.dev / demo1234</p>
+          <form action={submit}>
+            <label>
+              Email
+              <input name="email" type="email" placeholder="you@company.com" required defaultValue="demo@slotbook.dev" />
+            </label>
+            <label>
+              Password
+              <input name="password" type="password" placeholder="Password" required />
+            </label>
+            <button type="submit" className="primary">
+              Log in
+            </button>
+          </form>
+          {error && <p className="error">{error}</p>}
+          <p className="muted" style={{ marginTop: "1rem", marginBottom: 0 }}>
+            Or try a <Link href="/demo/intro-call">public booking page</Link>.
+          </p>
+        </section>
+      </div>
+    </main>
   );
 }

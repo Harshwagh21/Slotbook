@@ -15,9 +15,15 @@ export default async function DashboardPage() {
     upcomingBookings(host.id),
   ]);
   return (
-    <>
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <h1>Hi, {host.name}</h1>
+    <main className="app-shell">
+      <div className="page-head">
+        <div>
+          <p className="badge">Host dashboard</p>
+          <h1>Hi, {host.name}</h1>
+          <p className="page-kicker">
+            @{host.handle} · {host.timezone}
+          </p>
+        </div>
         <LogoutButton />
       </div>
       <Bookings bookings={bookings} timezone={host.timezone} />
@@ -25,6 +31,6 @@ export default async function DashboardPage() {
       <EventTypes handle={host.handle} eventTypes={eventTypes} />
       <Availability key={JSON.stringify(rules)} rules={rules} />
       <Overrides overrides={overrides} />
-    </>
+    </main>
   );
 }

@@ -49,7 +49,7 @@ export function SlotPicker({
   return (
     <div>
       {[...days.entries()].map(([day, list]) => (
-        <div key={day}>
+        <div className="day-block" key={day}>
           <h3>{day}</h3>
           <div className="slots">
             {list.map((s) => (

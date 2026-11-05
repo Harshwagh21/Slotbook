@@ -15,12 +15,18 @@ export default async function Page({ params }: { params: Promise<{ host: string;
   });
   if (!et) notFound();
   return (
-    <>
-      <h1>{et.name}</h1>
-      <p className="muted">
-        with {et.host_handle} · {et.duration_min} min{et.capacity > 1 ? ` · group of up to ${et.capacity}` : " · one-on-one"}
-      </p>
+    <main className="app-shell">
+      <div className="page-head">
+        <div>
+          <p className="badge">Public booking</p>
+          <h1>{et.name}</h1>
+          <p className="page-kicker">
+            with {et.host_handle} · {et.duration_min} min
+            {et.capacity > 1 ? ` · group of up to ${et.capacity}` : " · one-on-one"}
+          </p>
+        </div>
+      </div>
       <BookingPage host={host} slug={slug} capacity={et.capacity} />
-    </>
+    </main>
   );
 }
