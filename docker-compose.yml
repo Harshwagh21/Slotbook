@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: slotbook
+      POSTGRES_PASSWORD: slotbook
+      POSTGRES_DB: slotbook
+    ports:
+      - "5432:5432" # also used by `pnpm test` (slotbook_test database) and `pnpm dev`
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # -h 127.0.0.1: only report healthy once the real server accepts TCP (not the init-time server).
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U slotbook -d slotbook"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://slotbook:slotbook@db:5432/slotbook
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
