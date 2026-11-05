@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: slotbook
       POSTGRES_DB: slotbook
     ports:
-      - "5432:5432" # also used by `pnpm test` (slotbook_test database) and `pnpm dev`
+      - "${DB_PORT:-5432}:5432" # set DB_PORT if 5432 is taken; also used by `pnpm test` (slotbook_test database) and `pnpm dev`
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -24,7 +24,7 @@ services:
     environment:
       DATABASE_URL: postgres://slotbook:slotbook@db:5432/slotbook
     ports:
-      - "3000:3000"
+      - "${APP_PORT:-3000}:3000" # set APP_PORT if 3000 is taken
 
 volumes:
   pgdata:
