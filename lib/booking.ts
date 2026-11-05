@@ -111,7 +111,9 @@ export async function listSlots(
   const { earliest, latest } = bookableRange(et, now);
   const from = new Date(Math.max((range.from ?? now).getTime(), earliest.getTime()));
   const defaultTo = new Date(now.getTime() + GUEST_WINDOW_DAYS * 86_400_000);
-  const to = new Date(Math.min((range.to ?? defaultTo).getTime(), latest.getTime()));
+  const requestedTo = range.to ?? defaultTo;
+  // `to` is exclusive, except that a slot starting exactly at the horizon is still bookable.
+  const to = requestedTo > latest ? new Date(latest.getTime() + 1) : requestedTo;
   if (to <= from) return [];
 
   const { rules, overrides } = await loadAvailability(db, et.host_id);
@@ -121,7 +123,7 @@ export async function listSlots(
     overrides,
     durationMin: et.duration_min,
     from,
-    to: new Date(to.getTime() + 1), // a slot starting exactly at `latest` is still bookable
+    to,
   });
   // Active = confirmed, or held and not yet past its expiry (by the DB clock).
   const busy = await db.query<BusyBooking>(
