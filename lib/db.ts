@@ -1,13 +1,12 @@
 import { Pool, type PoolClient } from "pg";
+import { DATABASE_URL } from "./config";
 
 // One pool per process. Reused across Next.js hot reloads in dev.
 const globalForPg = globalThis as unknown as { pgPool?: Pool };
 
 export function getPool(): Pool {
   if (!globalForPg.pgPool) {
-    const connectionString = process.env.DATABASE_URL;
-    if (!connectionString) throw new Error("DATABASE_URL is not set");
-    globalForPg.pgPool = new Pool({ connectionString, max: 10 });
+    globalForPg.pgPool = new Pool({ connectionString: DATABASE_URL, max: 10 });
   }
   return globalForPg.pgPool;
 }

@@ -2,6 +2,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { Client } from "pg";
+import { DATABASE_URL } from "../lib/config";
 
 export async function migrate(connectionString: string, log = console.log): Promise<void> {
   const client = new Client({ connectionString });
@@ -37,12 +38,7 @@ export async function migrate(connectionString: string, log = console.log): Prom
 
 // Run directly: `pnpm migrate`
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename)) {
-  const url = process.env.DATABASE_URL;
-  if (!url) {
-    console.error("DATABASE_URL is not set");
-    process.exit(1);
-  }
-  migrate(url)
+  migrate(DATABASE_URL)
     .then(() => console.log("migrations up to date"))
     .catch((err) => {
       console.error(err);
