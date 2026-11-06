@@ -5,6 +5,7 @@ import { getAvailability, listEventTypes, listOverrides, upcomingBookings } from
 
 export const dynamic = "force-dynamic";
 
+/** Host dashboard: bookings, settings, event types, availability, overrides. */
 export default async function DashboardPage() {
   const host = await currentHost();
   if (!host) redirect("/login");

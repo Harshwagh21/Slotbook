@@ -6,7 +6,7 @@ import { ApiError } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
 
-// Public booking page: /{host}/{event-slug}
+/** Public booking page at `/{host}/{event-slug}`. */
 export default async function Page({ params }: { params: Promise<{ host: string; slug: string }> }) {
   const { host, slug } = await params;
   const et = await getEventType(getPool(), host, slug).catch((e) => {

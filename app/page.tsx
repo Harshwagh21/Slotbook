@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+/** Landing page: brand, one-line pitch, and links to login / demo. */
 export default function Home() {
   return (
     <div className="landing">

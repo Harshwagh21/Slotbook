@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-/** Load `.env` for tsx scripts (migrate/seed). Next.js already loads it on its own. */
+/** Load `.env` into `process.env` for tsx scripts (Next.js loads it on its own). */
 function loadDotEnv() {
   const path = resolve(process.cwd(), ".env");
   if (!existsSync(path)) return;

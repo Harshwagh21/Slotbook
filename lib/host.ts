@@ -20,10 +20,12 @@ const EVENT_TYPE_COLUMNS = `id, slug, name, duration_min AS "durationMin", capac
   buffer_before_min AS "bufferBeforeMin", buffer_after_min AS "bufferAfterMin",
   min_notice_min AS "minNoticeMin", horizon_days AS "horizonDays"`;
 
+/** Update the host's home IANA time zone. */
 export async function setTimezone(hostId: string, timezone: string) {
   await getPool().query("UPDATE hosts SET timezone = $2 WHERE id = $1", [hostId, timezone]);
 }
 
+/** List all event types for a host (dashboard). */
 export async function listEventTypes(hostId: string): Promise<EventType[]> {
   const { rows } = await getPool().query<EventType>(
     `SELECT ${EVENT_TYPE_COLUMNS} FROM event_types WHERE host_id = $1 ORDER BY created_at, name`,
@@ -37,11 +39,13 @@ const values = (e: EventTypeInput) => [
   e.slug, e.name, e.durationMin, e.capacity, e.bufferBeforeMin, e.bufferAfterMin, e.minNoticeMin, e.horizonDays,
 ];
 
+/** Map a unique-slug DB conflict to a friendly 409 ApiError. */
 function slugTaken(err: unknown): never {
   if ((err as { code?: string }).code === "23505") throw new ApiError(409, "slug_taken", "You already have an event type with that slug");
   throw err;
 }
 
+/** Create a new event type for the host. */
 export async function createEventType(hostId: string, e: EventTypeInput): Promise<EventType> {
   const { rows } = await getPool()
     .query<EventType>(
@@ -53,6 +57,7 @@ export async function createEventType(hostId: string, e: EventTypeInput): Promis
   return rows[0];
 }
 
+/** Update an existing event type owned by the host. */
 export async function updateEventType(hostId: string, id: string, e: EventTypeInput): Promise<EventType> {
   const { rows } = await getPool()
     .query<EventType>(
@@ -66,6 +71,7 @@ export async function updateEventType(hostId: string, id: string, e: EventTypeIn
   return rows[0];
 }
 
+/** Delete an event type; refused with 409 if it already has bookings. */
 export async function deleteEventType(hostId: string, id: string): Promise<void> {
   const { rows } = await getPool().query("SELECT 1 FROM bookings WHERE event_type_id = $1 LIMIT 1", [id]);
   if (rows[0]) throw new ApiError(409, "has_bookings", "This event type has bookings, so it can't be deleted");
@@ -75,6 +81,7 @@ export async function deleteEventType(hostId: string, id: string): Promise<void>
 
 export type AvailabilityRule = { weekday: number; start: string; end: string };
 
+/** Read the host's weekly availability windows. */
 export async function getAvailability(hostId: string): Promise<AvailabilityRule[]> {
   const { rows } = await getPool().query<AvailabilityRule>(
     `SELECT weekday, to_char(start_time, 'HH24:MI') AS start, to_char(end_time, 'HH24:MI') AS end
@@ -106,6 +113,7 @@ export async function setAvailability(hostId: string, rules: z.infer<typeof avai
 
 export type DateOverride = { date: string; windows: { start: string; end: string }[] };
 
+/** List date overrides grouped by date (empty windows = day off). */
 export async function listOverrides(hostId: string): Promise<DateOverride[]> {
   const { rows } = await getPool().query<{ date: string; start: string | null; end: string | null }>(
     `SELECT to_char(date, 'YYYY-MM-DD') AS date, to_char(start_time, 'HH24:MI') AS start, to_char(end_time, 'HH24:MI') AS end
@@ -144,6 +152,7 @@ export async function setOverride(hostId: string, o: z.infer<typeof overrideBody
   }
 }
 
+/** Remove a date override so weekly rules apply again. */
 export async function deleteOverride(hostId: string, date: string) {
   await getPool().query("DELETE FROM date_overrides WHERE host_id = $1 AND date = $2", [hostId, date]);
 }
@@ -157,6 +166,7 @@ export type UpcomingBooking = {
   eventType: string;
 };
 
+/** Confirmed bookings that have not ended yet, ordered by start time. */
 export async function upcomingBookings(hostId: string): Promise<UpcomingBooking[]> {
   const { rows } = await getPool().query(
     `SELECT b.id, b.starts_at, b.ends_at, b.guest_name, b.guest_email, et.name AS et_name

@@ -1,8 +1,10 @@
 import { getPool } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
 
+/** Shared test DB pool (points at slotbook_test via vitest env). */
 export const db = () => getPool();
 
+/** Wipe all tables between tests so each case starts clean. */
 export async function resetDb() {
   await db().query(
     "TRUNCATE notifications, idempotency_keys, bookings, date_overrides, availability_rules, event_types, sessions, hosts CASCADE",
@@ -28,6 +30,7 @@ export async function createHost(handle = "alice", timezone = "UTC") {
   return hostId;
 }
 
+/** Insert an event type with sensible defaults for booking tests. */
 export async function createEventType(
   hostId: string,
   slug: string,

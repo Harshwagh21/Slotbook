@@ -12,10 +12,12 @@ export class ApiError extends Error {
   }
 }
 
+/** Return a JSON HTTP response with the given status. */
 export function json(body: unknown, status = 200) {
   return NextResponse.json(body, { status });
 }
 
+/** Turn ApiError / ZodError / unknown into a consistent JSON error body. */
 export function errorResponse(err: unknown) {
   if (err instanceof ApiError) {
     return json({ error: { code: err.code, message: err.message } }, err.status);
@@ -39,6 +41,7 @@ export function route<A extends unknown[]>(fn: (...args: A) => Promise<Response>
   };
 }
 
+/** Parse and validate a JSON request body with a Zod schema. */
 export async function readBody<T>(req: Request, schema: ZodType<T>): Promise<T> {
   let data: unknown;
   try {

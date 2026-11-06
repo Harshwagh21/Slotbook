@@ -4,6 +4,7 @@ import path from "node:path";
 import { Client } from "pg";
 import { DATABASE_URL } from "../lib/config";
 
+/** Apply each `db/migrations/*.sql` file once, in name order, under an advisory lock. */
 export async function migrate(connectionString: string, log = console.log): Promise<void> {
   const client = new Client({ connectionString });
   await client.connect();

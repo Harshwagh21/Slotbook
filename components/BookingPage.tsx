@@ -7,6 +7,7 @@ import { TimeZoneSelect } from "./TimeZoneSelect";
 
 type Hold = { holdId: string; start: string; end: string; expiresAt: string };
 
+/** Guest booking flow: pick a slot → 5-min hold → confirm → manage link. */
 export function BookingPage(props: { host: string; slug: string; capacity: number }) {
   const [tz, setTz] = useState("UTC");
   const [hold, setHold] = useState<Hold | null>(null);
@@ -35,6 +36,7 @@ export function BookingPage(props: { host: string; slug: string; capacity: numbe
     return () => clearInterval(t);
   }, [hold, manageUrl]);
 
+  /** Hold the chosen slot with an Idempotency-Key (one retry on network error). */
   async function pick(start: string) {
     setBusy(true);
     setMessage(null);
@@ -51,6 +53,7 @@ export function BookingPage(props: { host: string; slug: string; capacity: numbe
     }
   }
 
+  /** Confirm the live hold with guest name + email; shows the manage URL on success. */
   async function confirm(form: FormData) {
     if (!hold) return;
     setBusy(true);

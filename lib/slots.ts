@@ -21,6 +21,7 @@ export type SlotEventType = {
 
 const MINUTE = 60_000;
 
+/** Parse `"HH:MM"` into hour and minute numbers. */
 function parseTime(t: string): { hour: number; minute: number } {
   const [h, m] = t.split(":").map(Number);
   return { hour: h, minute: m };

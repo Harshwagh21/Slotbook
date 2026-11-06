@@ -24,6 +24,7 @@ export async function login(email: string, password: string): Promise<{ token: s
   return { token, expires: res.rows[0].expires_at };
 }
 
+/** Delete the current session cookie's row from the database. */
 export async function logout(): Promise<void> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (token) await getPool().query("DELETE FROM sessions WHERE token = $1", [token]);

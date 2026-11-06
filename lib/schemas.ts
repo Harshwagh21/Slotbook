@@ -39,7 +39,7 @@ const window = z
   .object({ start: hhmm, end: hhmm })
   .refine((w) => w.start < w.end, "start must be before end");
 
-// Windows on the same day must not overlap (otherwise the same slot would be offered twice).
+/** True if any two HH:MM windows on the same day overlap. */
 function overlaps(ws: { start: string; end: string }[]): boolean {
   const sorted = [...ws].sort((a, b) => a.start.localeCompare(b.start));
   return sorted.some((w, i) => i > 0 && w.start < sorted[i - 1].end);

@@ -13,6 +13,7 @@ export const DEMO = {
   timezone: "Asia/Kolkata",
 };
 
+/** Idempotent seed: demo host, two event types, Mon–Fri availability. */
 export async function seed(connectionString: string): Promise<void> {
   const client = new Client({ connectionString });
   await client.connect();

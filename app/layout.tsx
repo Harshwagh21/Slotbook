@@ -21,6 +21,7 @@ export const metadata = {
   description: "Hosts publish when they are free. Guests book a slot.",
 };
 
+/** App shell: fonts, site header, and page content. */
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${ibmPlex.variable}`}>

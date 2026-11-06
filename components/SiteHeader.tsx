@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+/** Top nav: brand link, demo, and host login. */
 export function SiteHeader() {
   return (
     <header className="site-header">

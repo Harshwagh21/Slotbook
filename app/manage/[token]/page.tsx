@@ -5,7 +5,7 @@ import { getPool } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-// Private manage page: /manage/{token} (the token is the only credential).
+/** Private manage page at `/manage/{token}` — token is the only credential. */
 export default async function Page({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const booking = await getBookingByToken(token);

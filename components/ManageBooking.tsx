@@ -6,6 +6,7 @@ import { api, browserTimeZone, formatDateTime } from "@/lib/client";
 import { SlotPicker } from "./SlotPicker";
 import { TimeZoneSelect } from "./TimeZoneSelect";
 
+/** Guest manage page: view booking, reschedule to a new slot, or cancel with a reason. */
 export function ManageBooking({ token, initial, capacity }: { token: string; initial: BookingView; capacity: number }) {
   const [booking, setBooking] = useState(initial);
   const [tz, setTz] = useState("UTC");
@@ -15,6 +16,7 @@ export function ManageBooking({ token, initial, capacity }: { token: string; ini
 
   useEffect(() => setTz(browserTimeZone()), []);
 
+  /** Move the booking to a new start time via the manage token. */
   async function reschedule(start: string) {
     if (!window.confirm(`Move your booking to ${formatDateTime(start, tz)}?`)) return;
     const r = await api<{ booking: BookingView }>(`/api/bookings/${token}/reschedule`, { method: "POST", body: { start } });
@@ -28,6 +30,7 @@ export function ManageBooking({ token, initial, capacity }: { token: string; ini
     }
   }
 
+  /** Cancel the booking (optional reason); cancelling twice is a no-op. */
   async function cancel(form: FormData) {
     const r = await api<{ booking: BookingView }>(`/api/bookings/${token}/cancel`, {
       method: "POST",

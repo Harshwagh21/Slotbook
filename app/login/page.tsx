@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api } from "@/lib/client";
 
+/** Host login form; on success redirects to the dashboard. */
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
 
+  /** POST credentials to /api/host/login and navigate on success. */
   async function submit(form: FormData) {
     const r = await api("/api/host/login", {
       method: "POST",

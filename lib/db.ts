@@ -4,6 +4,7 @@ import { DATABASE_URL } from "./config";
 // One pool per process. Reused across Next.js hot reloads in dev.
 const globalForPg = globalThis as unknown as { pgPool?: Pool };
 
+/** Shared Postgres connection pool for this process. */
 export function getPool(): Pool {
   if (!globalForPg.pgPool) {
     globalForPg.pgPool = new Pool({ connectionString: DATABASE_URL, max: 10 });

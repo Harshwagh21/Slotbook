@@ -8,7 +8,7 @@ import { TimeZoneSelect } from "./TimeZoneSelect";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-/** Calls the API, shows the error if any, and refreshes the server-rendered data on success. */
+/** Shared dashboard helper: call an API, show errors, refresh RSC data on success. */
 function useAction() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +25,7 @@ function useAction() {
   return { run, error };
 }
 
+/** Host panel: edit and save the home IANA time zone. */
 export function Settings({ timezone }: { timezone: string }) {
   const { run, error } = useAction();
   const [tz, setTz] = useState(timezone);
@@ -59,6 +60,7 @@ const EMPTY: Omit<EventType, "id"> = {
   horizonDays: 30,
 };
 
+/** Form fields for creating or editing one event type. */
 function EventTypeForm({ initial, onSave, onCancel }: {
   initial: Omit<EventType, "id">;
   onSave: (e: Omit<EventType, "id">) => Promise<boolean>;
@@ -93,6 +95,7 @@ function EventTypeForm({ initial, onSave, onCancel }: {
   );
 }
 
+/** Host panel: list, create, edit, and delete event types. */
 export function EventTypes({ handle, eventTypes }: { handle: string; eventTypes: EventType[] }) {
   const { run, error } = useAction();
   const [editing, setEditing] = useState<string | null>(null);
@@ -156,6 +159,7 @@ export function EventTypes({ handle, eventTypes }: { handle: string; eventTypes:
   );
 }
 
+/** Host panel: edit weekly availability windows and save as a full replace. */
 export function Availability({ rules: initial }: { rules: AvailabilityRule[] }) {
   const { run, error } = useAction();
   const [rules, setRules] = useState(initial);
@@ -194,6 +198,7 @@ export function Availability({ rules: initial }: { rules: AvailabilityRule[] }) 
   );
 }
 
+/** Host panel: mark a day off or set custom hours that replace weekly rules. */
 export function Overrides({ overrides }: { overrides: DateOverride[] }) {
   const { run, error } = useAction();
   const [date, setDate] = useState("");
@@ -255,6 +260,7 @@ export function Overrides({ overrides }: { overrides: DateOverride[] }) {
   );
 }
 
+/** Host panel: upcoming confirmed bookings with cancel-with-reason. */
 export function Bookings({ bookings, timezone }: { bookings: UpcomingBooking[]; timezone: string }) {
   const { run, error } = useAction();
   return (
@@ -293,6 +299,7 @@ export function Bookings({ bookings, timezone }: { bookings: UpcomingBooking[]; 
   );
 }
 
+/** Clear the host session cookie and return to the login page. */
 export function LogoutButton() {
   const router = useRouter();
   return (

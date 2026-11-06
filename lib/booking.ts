@@ -54,6 +54,7 @@ export type BookingView = {
 
 // ---------- reads ----------
 
+/** Look up an event type by host handle + slug, or 404. */
 export async function getEventType(db: Db, host: string, slug: string): Promise<EventTypeRow> {
   const { rows } = await db.query<EventTypeRow>(
     `SELECT et.*, h.handle AS host_handle, h.timezone AS host_timezone
@@ -65,6 +66,7 @@ export async function getEventType(db: Db, host: string, slug: string): Promise<
   return rows[0];
 }
 
+/** Look up an event type by its UUID (used during reschedule). */
 async function getEventTypeById(db: Db, id: string): Promise<EventTypeRow> {
   const { rows } = await db.query<EventTypeRow>(
     `SELECT et.*, h.handle AS host_handle, h.timezone AS host_timezone
@@ -74,11 +76,13 @@ async function getEventTypeById(db: Db, id: string): Promise<EventTypeRow> {
   return rows[0];
 }
 
+/** Postgres `now()` — the only clock the booking engine trusts. */
 async function dbNow(db: Db): Promise<Date> {
   const { rows } = await db.query<{ now: Date }>("SELECT now() AS now");
   return rows[0].now;
 }
 
+/** Load weekly rules and date overrides for slot generation. */
 async function loadAvailability(db: Db, hostId: string): Promise<{ rules: Rule[]; overrides: Override[] }> {
   const rules = await db.query<Rule>(
     "SELECT weekday, to_char(start_time, 'HH24:MI') AS start_time, to_char(end_time, 'HH24:MI') AS end_time FROM availability_rules WHERE host_id = $1",
@@ -137,11 +141,13 @@ export async function listSlots(
 
 // ---------- shared write steps (call only while holding the host lock) ----------
 
+/** Take a per-host advisory lock so writes for one host never interleave. */
 async function lockHost(db: Db, hostId: string): Promise<void> {
   // Released automatically at COMMIT / ROLLBACK (or if the connection dies).
   await db.query("SELECT pg_advisory_xact_lock(hashtext($1))", [hostId]);
 }
 
+/** Mark held bookings past hold_expires_at as expired before capacity checks. */
 async function expireStaleHolds(db: Db, hostId: string): Promise<void> {
   await db.query(
     "UPDATE bookings SET status = 'expired' WHERE host_id = $1 AND status = 'held' AND hold_expires_at <= now()",
@@ -190,6 +196,7 @@ async function assertFree(db: Db, et: EventTypeRow, start: Date, excludeBookingI
   if (seats.rows[0].n >= et.capacity) throw new ApiError(409, "slot_full", "That slot is full");
 }
 
+/** Insert a notification row in the same transaction as the booking change. */
 async function notify(db: Db, bookingId: string, type: "confirmed" | "rescheduled" | "cancelled", payload: object) {
   await db.query("INSERT INTO notifications (booking_id, type, payload) VALUES ($1, $2, $3)", [
     bookingId,
@@ -198,6 +205,7 @@ async function notify(db: Db, bookingId: string, type: "confirmed" | "reschedule
   ]);
 }
 
+/** Shape a booking row into the public BookingView DTO. */
 async function bookingView(db: Db, id: string): Promise<BookingView> {
   const { rows } = await db.query(
     `SELECT b.*, et.slug, et.name AS et_name, et.duration_min, h.handle, h.name AS host_name, h.timezone
@@ -347,6 +355,7 @@ export async function rescheduleBooking(token: string, newStartIso: string): Pro
   });
 }
 
+/** Shared cancel path used by guest token and host dashboard. */
 async function cancel(db: Db, b: BookingRow, reason: string | undefined, by: "guest" | "host"): Promise<BookingView> {
   if (b.status === "cancelled") return bookingView(db, b.id);
   if (b.status !== "confirmed") throw new ApiError(409, "booking_not_active", "Only confirmed bookings can be cancelled");
@@ -370,6 +379,7 @@ export function cancelByHost(hostId: string, bookingId: string, reason?: string)
   });
 }
 
+/** Load a booking by its private manage token, or null if missing. */
 export async function getBookingByToken(token: string): Promise<BookingView | null> {
   const { rows } = await getPool().query<{ id: string }>("SELECT id FROM bookings WHERE manage_token = $1", [token]);
   return rows[0] ? bookingView(getPool(), rows[0].id) : null;

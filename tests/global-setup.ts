@@ -2,13 +2,14 @@ import { Client } from "pg";
 import { DATABASE_URL } from "../lib/config";
 import { migrate } from "../scripts/migrate";
 
+/** Derive `…/slotbook_test` from the main DATABASE_URL host/port. */
 function defaultTestDatabaseUrl() {
   const url = new URL(DATABASE_URL);
   url.pathname = "/slotbook_test";
   return url.toString();
 }
 
-// Creates the test database if needed and applies migrations once before all tests.
+/** Create the test database if needed and apply migrations once before all tests. */
 export default async function setup() {
   const url = new URL(process.env.TEST_DATABASE_URL ?? defaultTestDatabaseUrl());
   const dbName = url.pathname.slice(1);

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { allTimeZones } from "@/lib/client";
 
+/** Dropdown of IANA time zones; zone list is loaded after mount. */
 export function TimeZoneSelect({ value, onChange, id }: { value: string; onChange: (tz: string) => void; id?: string }) {
   // The zone list comes from the browser after mount (it can differ from the server's list).
   const [zones, setZones] = useState<string[]>([]);
