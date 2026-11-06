@@ -59,6 +59,8 @@ The demo host's time zone is `Asia/Kolkata`, and its availability is Mon–Fri 0
 
 ## API
 
+OpenAPI spec: [`public/openapi.yaml`](./public/openapi.yaml) (also served at `/openapi.yaml`).
+
 All bodies are JSON. Errors look like `{ "error": { "code": "...", "message": "..." } }`.
 
 ### Guest (public)

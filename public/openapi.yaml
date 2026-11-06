@@ -1,0 +1,578 @@
+openapi: 3.0.3
+info:
+  title: Slotbook API
+  version: 0.1.0
+  description: |
+    Hosts publish free time. Guests hold a slot, confirm, then manage via a private token.
+
+    **Guest** endpoints are public.
+    **Host** endpoints need the `slotbook_session` cookie from `POST /api/host/login`.
+
+    Demo host: `demo@slotbook.dev` / `demo1234`
+servers:
+  - url: http://localhost:3000
+    description: Local dev
+
+tags:
+  - name: Guest
+    description: Public booking flow
+  - name: Host
+    description: Authenticated dashboard APIs
+
+paths:
+  /api/hosts/{host}/events/{slug}/slots:
+    get:
+      tags: [Guest]
+      summary: List available slots
+      parameters:
+        - $ref: "#/components/parameters/host"
+        - $ref: "#/components/parameters/slug"
+        - name: from
+          in: query
+          schema: { type: string }
+          description: ISO instant or YYYY-MM-DD
+        - name: to
+          in: query
+          schema: { type: string }
+          description: ISO instant or YYYY-MM-DD (date = end of that day in tz)
+        - name: tz
+          in: query
+          schema: { type: string, default: UTC }
+          description: IANA zone for localStart and date bounds
+      responses:
+        "200":
+          description: Free slots in range
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  host:
+                    type: object
+                    properties:
+                      handle: { type: string }
+                      timezone: { type: string }
+                  eventType:
+                    type: object
+                    properties:
+                      slug: { type: string }
+                      name: { type: string }
+                      durationMin: { type: integer }
+                      capacity: { type: integer }
+                  tz: { type: string }
+                  slots:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        start: { type: string, format: date-time }
+                        end: { type: string, format: date-time }
+                        remaining: { type: integer }
+                        localStart: { type: string }
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /api/holds:
+    post:
+      tags: [Guest]
+      summary: Hold a slot for 5 minutes
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, maxLength: 200 }
+          description: Same key + body returns the same hold
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [host, slug, start]
+              properties:
+                host: { type: string, example: demo }
+                slug: { type: string, example: intro-call }
+                start: { type: string, format: date-time }
+      responses:
+        "201":
+          description: Hold created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  holdId: { type: string, format: uuid }
+                  start: { type: string, format: date-time }
+                  end: { type: string, format: date-time }
+                  expiresAt: { type: string, format: date-time }
+        "400":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+
+  /api/holds/{id}/confirm:
+    post:
+      tags: [Guest]
+      summary: Confirm a live hold
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email]
+              properties:
+                name: { type: string, example: Ana }
+                email: { type: string, format: email, example: ana@example.com }
+      responses:
+        "200":
+          description: Booking confirmed + manage link
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  booking: { $ref: "#/components/schemas/BookingView" }
+                  manageToken: { type: string }
+                  manageUrl: { type: string }
+        "410":
+          description: Hold expired
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorBody" }
+
+  /api/bookings/{token}/reschedule:
+    post:
+      tags: [Guest]
+      summary: Move a booking to a new start
+      parameters:
+        - $ref: "#/components/parameters/manageToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [start]
+              properties:
+                start: { type: string, format: date-time }
+      responses:
+        "200":
+          description: Booking moved (same id and manage link)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  booking: { $ref: "#/components/schemas/BookingView" }
+        "409":
+          $ref: "#/components/responses/Error"
+
+  /api/bookings/{token}/cancel:
+    post:
+      tags: [Guest]
+      summary: Cancel a booking
+      parameters:
+        - $ref: "#/components/parameters/manageToken"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string, maxLength: 500 }
+      responses:
+        "200":
+          description: Booking cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  booking: { $ref: "#/components/schemas/BookingView" }
+
+  /api/host/login:
+    post:
+      tags: [Host]
+      summary: Log in (sets session cookie)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, example: demo@slotbook.dev }
+                password: { type: string, example: demo1234 }
+      responses:
+        "200":
+          description: Cookie `slotbook_session` set
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+        "401":
+          $ref: "#/components/responses/Error"
+
+  /api/host/logout:
+    post:
+      tags: [Host]
+      summary: Log out (clears session)
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: Logged out
+
+  /api/host/settings:
+    get:
+      tags: [Host]
+      summary: Get host profile
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: Current host
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  host: { $ref: "#/components/schemas/Host" }
+    put:
+      tags: [Host]
+      summary: Update home timezone
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [timezone]
+              properties:
+                timezone: { type: string, example: Asia/Kolkata }
+      responses:
+        "200":
+          description: Updated host
+
+  /api/host/event-types:
+    get:
+      tags: [Host]
+      summary: List event types
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: Event types
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  eventTypes:
+                    type: array
+                    items: { $ref: "#/components/schemas/EventType" }
+    post:
+      tags: [Host]
+      summary: Create event type
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EventTypeInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  eventType: { $ref: "#/components/schemas/EventType" }
+
+  /api/host/event-types/{id}:
+    put:
+      tags: [Host]
+      summary: Update event type
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/eventTypeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EventTypeInput" }
+      responses:
+        "200":
+          description: Updated
+        "409":
+          $ref: "#/components/responses/Error"
+    delete:
+      tags: [Host]
+      summary: Delete event type
+      description: Blocked while upcoming held/confirmed bookings exist.
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/eventTypeId"
+      responses:
+        "200":
+          description: Deleted
+        "409":
+          $ref: "#/components/responses/Error"
+
+  /api/host/availability:
+    get:
+      tags: [Host]
+      summary: Get weekly availability
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: Weekly rules
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rules:
+                    type: array
+                    items: { $ref: "#/components/schemas/AvailabilityRule" }
+    put:
+      tags: [Host]
+      summary: Replace weekly availability
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rules]
+              properties:
+                rules:
+                  type: array
+                  items: { $ref: "#/components/schemas/AvailabilityRule" }
+      responses:
+        "200":
+          description: Saved rules
+
+  /api/host/overrides:
+    get:
+      tags: [Host]
+      summary: List date overrides
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: Overrides (empty windows = day off)
+    put:
+      tags: [Host]
+      summary: Set override for one date
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [date, windows]
+              properties:
+                date: { type: string, format: date }
+                windows:
+                  type: array
+                  items:
+                    type: object
+                    required: [start, end]
+                    properties:
+                      start: { type: string, example: "10:00" }
+                      end: { type: string, example: "14:00" }
+      responses:
+        "200":
+          description: Updated overrides list
+
+  /api/host/overrides/{date}:
+    delete:
+      tags: [Host]
+      summary: Remove a date override
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - name: date
+          in: path
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Removed
+
+  /api/host/bookings:
+    get:
+      tags: [Host]
+      summary: Upcoming confirmed bookings
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: Bookings list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bookings:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        start: { type: string, format: date-time }
+                        end: { type: string, format: date-time }
+                        guestName: { type: string }
+                        guestEmail: { type: string }
+                        eventType: { type: string }
+
+  /api/host/bookings/{id}/cancel:
+    post:
+      tags: [Host]
+      summary: Cancel a booking as host
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        "200":
+          description: Cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  booking: { $ref: "#/components/schemas/BookingView" }
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: slotbook_session
+
+  parameters:
+    host:
+      name: host
+      in: path
+      required: true
+      schema: { type: string, example: demo }
+    slug:
+      name: slug
+      in: path
+      required: true
+      schema: { type: string, example: intro-call }
+    manageToken:
+      name: token
+      in: path
+      required: true
+      schema: { type: string }
+      description: Private manage token from confirm
+    eventTypeId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    ErrorBody:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string, example: slot_taken }
+            message: { type: string }
+
+    Host:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        handle: { type: string }
+        name: { type: string }
+        email: { type: string }
+        timezone: { type: string }
+
+    EventType:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string }
+        name: { type: string }
+        durationMin: { type: integer }
+        capacity: { type: integer }
+        bufferBeforeMin: { type: integer }
+        bufferAfterMin: { type: integer }
+        minNoticeMin: { type: integer }
+        horizonDays: { type: integer }
+
+    EventTypeInput:
+      type: object
+      required:
+        [name, slug, durationMin, capacity, bufferBeforeMin, bufferAfterMin, minNoticeMin, horizonDays]
+      properties:
+        name: { type: string }
+        slug: { type: string, pattern: "^[a-z0-9-]+$" }
+        durationMin: { type: integer, minimum: 15, maximum: 120 }
+        capacity: { type: integer, minimum: 1 }
+        bufferBeforeMin: { type: integer, minimum: 0, maximum: 30 }
+        bufferAfterMin: { type: integer, minimum: 0, maximum: 30 }
+        minNoticeMin: { type: integer, minimum: 0 }
+        horizonDays: { type: integer, minimum: 1, maximum: 365 }
+
+    AvailabilityRule:
+      type: object
+      required: [weekday, start, end]
+      properties:
+        weekday: { type: integer, minimum: 1, maximum: 7, description: "ISO weekday, 1=Mon" }
+        start: { type: string, example: "09:00" }
+        end: { type: string, example: "12:00" }
+
+    BookingView:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        status: { type: string, enum: [held, confirmed, cancelled, expired] }
+        start: { type: string, format: date-time }
+        end: { type: string, format: date-time }
+        guestName: { type: string, nullable: true }
+        guestEmail: { type: string, nullable: true }
+        cancelReason: { type: string, nullable: true }
+        eventType:
+          type: object
+          properties:
+            slug: { type: string }
+            name: { type: string }
+            durationMin: { type: integer }
+        host:
+          type: object
+          properties:
+            handle: { type: string }
+            name: { type: string }
+            timezone: { type: string }
+
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorBody" }
