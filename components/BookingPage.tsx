@@ -40,16 +40,23 @@ export function BookingPage(props: { host: string; slug: string; capacity: numbe
   async function pick(start: string) {
     setBusy(true);
     setMessage(null);
-    // One key per pick: a retry after a network error reuses it and gets the same hold back.
-    const key = crypto.randomUUID();
-    const send = () =>
-      api<Hold>("/api/holds", { method: "POST", headers: { "Idempotency-Key": key }, body: { host: props.host, slug: props.slug, start } });
-    const r = await send().catch(() => send());
-    setBusy(false);
-    if (r.ok) setHold(r.data);
-    else {
-      setMessage(r.data.error?.message ?? "Could not hold that slot");
-      setReloadKey((k) => k + 1);
+    try {
+      // One key per pick: a retry after a network error reuses it and gets the same hold back.
+      const key = crypto.randomUUID();
+      const send = () =>
+        api<Hold>("/api/holds", {
+          method: "POST",
+          headers: { "Idempotency-Key": key },
+          body: { host: props.host, slug: props.slug, start },
+        });
+      const r = await send().catch(() => send());
+      if (r.ok) setHold(r.data);
+      else {
+        setMessage(r.data.error?.message ?? "Could not hold that slot");
+        setReloadKey((k) => k + 1);
+      }
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -57,18 +64,21 @@ export function BookingPage(props: { host: string; slug: string; capacity: numbe
   async function confirm(form: FormData) {
     if (!hold) return;
     setBusy(true);
-    const r = await api<{ manageUrl: string }>(`/api/holds/${hold.holdId}/confirm`, {
-      method: "POST",
-      body: { name: form.get("name"), email: form.get("email") },
-    });
-    setBusy(false);
-    if (r.ok) setManageUrl(r.data.manageUrl);
-    else {
-      setMessage(r.data.error?.message ?? "Could not confirm");
-      if (r.status === 410) {
-        setHold(null);
-        setReloadKey((k) => k + 1);
+    try {
+      const r = await api<{ manageUrl: string }>(`/api/holds/${hold.holdId}/confirm`, {
+        method: "POST",
+        body: { name: form.get("name"), email: form.get("email") },
+      });
+      if (r.ok) setManageUrl(r.data.manageUrl);
+      else {
+        setMessage(r.data.error?.message ?? "Could not confirm");
+        if (r.status === 410) {
+          setHold(null);
+          setReloadKey((k) => k + 1);
+        }
       }
+    } finally {
+      setBusy(false);
     }
   }
 

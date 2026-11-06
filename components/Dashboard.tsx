@@ -137,10 +137,16 @@ export function EventTypes({ handle, eventTypes }: { handle: string; eventTypes:
                   <td>{et.minNoticeMin} min / {et.horizonDays} days</td>
                   <td>
                     <div className="row" style={{ margin: 0 }}>
-                      <button onClick={() => setEditing(et.id)}>Edit</button>
+                      <button type="button" onClick={() => setEditing(et.id)}>
+                        Edit
+                      </button>
                       <button
+                        type="button"
                         className="btn--danger"
-                        onClick={() => window.confirm(`Delete ${et.name}?`) && run(`/api/host/event-types/${et.id}`, "DELETE")}
+                        onClick={async () => {
+                          if (!window.confirm(`Delete ${et.name}?`)) return;
+                          await run(`/api/host/event-types/${et.id}`, "DELETE");
+                        }}
                       >
                         Delete
                       </button>

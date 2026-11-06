@@ -28,14 +28,19 @@ export async function seed(connectionString: string): Promise<void> {
     const { rows } = await client.query<{ id: string }>("SELECT id FROM hosts WHERE handle = $1", [DEMO.handle]);
     const hostId = rows[0].id;
 
-    // 30-min one-on-one and a 60-min group session of 5.
-    await client.query(
-      `INSERT INTO event_types (host_id, slug, name, duration_min, capacity, buffer_before_min, buffer_after_min, min_notice_min, horizon_days)
-       VALUES ($1, 'intro-call', 'Intro call', 30, 1, 5, 10, 240, 30),
-              ($1, 'group-workshop', 'Group workshop', 60, 5, 0, 15, 240, 30)
-       ON CONFLICT (host_id, slug) DO NOTHING`,
-      [hostId],
-    );
+    // One insert each so a deleted demo event type is always recreated.
+    const demos = [
+      { slug: "intro-call", name: "Intro call", duration: 30, capacity: 1, before: 5, after: 10, notice: 240 },
+      { slug: "group-workshop", name: "Group workshop", duration: 60, capacity: 5, before: 0, after: 15, notice: 240 },
+    ];
+    for (const e of demos) {
+      await client.query(
+        `INSERT INTO event_types (host_id, slug, name, duration_min, capacity, buffer_before_min, buffer_after_min, min_notice_min, horizon_days)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 30)
+         ON CONFLICT (host_id, slug) DO NOTHING`,
+        [hostId, e.slug, e.name, e.duration, e.capacity, e.before, e.after, e.notice],
+      );
+    }
 
     // Mon–Fri 09:00–12:00 and 13:00–17:00 (two windows a day), only if the host has none yet.
     const { rowCount } = await client.query("SELECT 1 FROM availability_rules WHERE host_id = $1 LIMIT 1", [hostId]);

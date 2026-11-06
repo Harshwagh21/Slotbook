@@ -1,5 +1,5 @@
 // Host dashboard data: settings, event types, availability, overrides and upcoming bookings.
-import { getPool } from "./db";
+import { getPool, withTransaction } from "./db";
 import { ApiError } from "./http";
 import type { z } from "zod";
 import type { availabilityBody, eventTypeBody, overrideBody } from "./schemas";
@@ -71,12 +71,37 @@ export async function updateEventType(hostId: string, id: string, e: EventTypeIn
   return rows[0];
 }
 
-/** Delete an event type; refused with 409 if it already has bookings. */
+/**
+ * Delete an event type.
+ * Refused with 409 only while it still has active bookings (live holds or upcoming confirmed).
+ * Past / cancelled / expired rows are cleaned up so the FK does not block delete.
+ */
 export async function deleteEventType(hostId: string, id: string): Promise<void> {
-  const { rows } = await getPool().query("SELECT 1 FROM bookings WHERE event_type_id = $1 LIMIT 1", [id]);
-  if (rows[0]) throw new ApiError(409, "has_bookings", "This event type has bookings, so it can't be deleted");
-  const res = await getPool().query("DELETE FROM event_types WHERE host_id = $1 AND id = $2", [hostId, id]);
-  if (!res.rowCount) throw new ApiError(404, "not_found", "Event type not found");
+  await withTransaction(async (db) => {
+    // Same host lock as holds, so a booking cannot land between the check and delete.
+    await db.query("SELECT pg_advisory_xact_lock(hashtext($1))", [hostId]);
+    const active = await db.query(
+      `SELECT 1 FROM bookings
+        WHERE event_type_id = $1
+          AND (
+            (status = 'held' AND hold_expires_at > now())
+            OR (status = 'confirmed' AND ends_at > now())
+          )
+        LIMIT 1`,
+      [id],
+    );
+    if (active.rows[0]) {
+      throw new ApiError(409, "has_bookings", "This event type has upcoming bookings, so it can't be deleted");
+    }
+    await db.query(
+      `DELETE FROM notifications
+        WHERE booking_id IN (SELECT id FROM bookings WHERE event_type_id = $1)`,
+      [id],
+    );
+    await db.query("DELETE FROM bookings WHERE event_type_id = $1", [id]);
+    const res = await db.query("DELETE FROM event_types WHERE host_id = $1 AND id = $2", [hostId, id]);
+    if (!res.rowCount) throw new ApiError(404, "not_found", "Event type not found");
+  });
 }
 
 export type AvailabilityRule = { weekday: number; start: string; end: string };

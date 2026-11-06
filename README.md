@@ -149,7 +149,7 @@ Tests (`tests/`):
 - **Reschedule moves the same booking** (same id and manage link). It is allowed only while the booking is confirmed and has not started. The booking's own old time does not block the move.
 - **An expired hold returns `410` on confirm.** The guest has to pick again.
 - The **manage token** is a random 256-bit value. It is the only credential for the manage page.
-- **Hosts can cancel any upcoming confirmed booking.** Deleting an event type that has bookings is refused (`409`).
+- **Hosts can cancel any upcoming confirmed booking.** Deleting an event type that still has upcoming (held/confirmed) bookings is refused (`409`). Past, cancelled, or expired bookings are removed with the event type.
 - The **host login is seeded** (scrypt password hash plus a session cookie). There is no host sign-up. Host handles are single path segments, so `api`, `dashboard`, `login` and `manage` cannot be used as handles.
 - The `tz` parameter on the slots API only affects `localStart` and how date-only `from`/`to` values are read. Slot instants are always UTC.
 
